@@ -1,6 +1,8 @@
 #include <SoapySDR/Device.hpp>
 #include <SoapySDR/Registry.hpp>
+#include <chrono>
 #include <iostream>
+#include <thread>
 
 extern "C" {
 char const *App_path = "foo";
@@ -26,6 +28,18 @@ private:
     uint8_t *m_dp = nullptr;
     int m_bufferLen = 0;
     int m_bufferOffset = 0;
+    std::chrono::time_point<std::chrono::steady_clock> m_lastCommandTime{};
+
+    void sendCommand(const void *buf, int len)
+    {
+        std::this_thread::sleep_until(m_lastCommandTime + std::chrono::milliseconds(10));
+
+        if (send(m_Control_sock, buf, len, 0) != len) {
+            // TODO
+        }
+
+        m_lastCommandTime = std::chrono::steady_clock::now();
+    }
 
 public:
     KA9Q(const SoapySDR::Kwargs &args)
@@ -67,6 +81,24 @@ public:
         (void)direction;
         (void)channel;
 
+        uint8_t cmd_buffer[PKTSIZE];
+        uint8_t *bp = cmd_buffer;
+        *bp++ = 1; // Generate command packet
+        uint32_t sent_tag = arc4random();
+        encode_int(&bp, COMMAND_TAG, sent_tag);
+        encode_int(&bp, OUTPUT_SSRC, m_ssrc);
+        encode_int(&bp, OUTPUT_SAMPRATE, (int)rate);
+        encode_float(&bp, LOW_EDGE, (int)(rate * -0.49));
+        encode_float(&bp, HIGH_EDGE, (int)(rate * 0.49));
+        float Gain = 30;
+        encode_float(&bp, GAIN, Gain);
+        encode_int(&bp, AGC_ENABLE, false);
+        // encode_int(&bp, AGC_ENABLE, true);
+        encode_eol(&bp);
+
+        int cmd_len = bp - cmd_buffer;
+        sendCommand(cmd_buffer, cmd_len);
+
         m_sampleRate = rate;
     }
 
@@ -104,6 +136,19 @@ public:
         if (m_Control_sock == -1) {
             // TODO
         }
+
+        uint8_t cmd_buffer[PKTSIZE];
+        uint8_t *bp = cmd_buffer;
+        *bp++ = 1; // Generate command packet
+        uint32_t sent_tag = arc4random();
+        encode_int(&bp, COMMAND_TAG, sent_tag);
+        encode_int(&bp, OUTPUT_SSRC, m_ssrc);
+        const char *Mode = "iq";
+        encode_string(&bp, PRESET, Mode, strlen(Mode));
+        encode_eol(&bp);
+
+        int cmd_len = bp - cmd_buffer;
+        sendCommand(cmd_buffer, cmd_len);
 
         m_Input_fd = setup_mcast_in(m_data.c_str(), NULL, 0, 0);
         if (m_Input_fd == -1) {
@@ -224,13 +269,11 @@ public:
         uint32_t sent_tag = arc4random();
         encode_int(&bp, COMMAND_TAG, sent_tag);
         encode_int(&bp, OUTPUT_SSRC, m_ssrc);
-    	encode_double(&bp, RADIO_FREQUENCY, frequency); // Hz
+        encode_double(&bp, RADIO_FREQUENCY, frequency); // Hz
         encode_eol(&bp);
 
         int cmd_len = bp - cmd_buffer;
-        if (send(m_Control_sock, cmd_buffer, cmd_len, 0) != cmd_len) {
-	        // TODO
-        }
+        sendCommand(cmd_buffer, cmd_len);
     }
 };
 
