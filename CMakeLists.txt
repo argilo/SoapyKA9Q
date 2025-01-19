@@ -40,3 +40,5 @@ SOAPY_SDR_MODULE_UTIL(
         KA9QSupport.cpp
     LIBRARIES ${MY_DEVICE_LIBRARIES}
 )
+
+target_link_libraries(KA9Q bsd)

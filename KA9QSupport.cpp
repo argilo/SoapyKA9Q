@@ -1,6 +1,7 @@
 #include <SoapySDR/Device.hpp>
 #include <SoapySDR/Registry.hpp>
 #include <chrono>
+#include <cstring>
 #include <iostream>
 #include <thread>
 
