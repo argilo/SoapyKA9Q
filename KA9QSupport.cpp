@@ -33,7 +33,7 @@ private:
 
     void sendCommand(const void *buf, int len)
     {
-        std::this_thread::sleep_until(m_lastCommandTime + std::chrono::milliseconds(10));
+        std::this_thread::sleep_until(m_lastCommandTime + std::chrono::milliseconds(25));
 
         if (send(m_Control_sock, buf, len, 0) != len) {
             // TODO
