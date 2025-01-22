@@ -21,7 +21,7 @@ private:
     std::string m_data;
     uint32_t m_ssrc;
 
-    double m_sampleRate = 0;
+    double m_sampleRate = 1000000;
     int m_Status_sock = -1;
     int m_Control_sock = -1;
     int m_Input_fd = -1;
