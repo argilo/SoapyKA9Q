@@ -116,6 +116,37 @@ public:
         return m_sampleRate;
     }
 
+    std::vector<double> listSampleRates(const int direction, const size_t channel) const
+    {
+        (void)direction;
+        (void)channel;
+
+        std::vector<double> results;
+
+        results.push_back(1000000);
+        results.push_back(2000000);
+        results.push_back(3000000);
+        results.push_back(4000000);
+        results.push_back(5000000);
+        results.push_back(6000000);
+        results.push_back(8000000);
+        results.push_back(10000000);
+
+        return results;
+    }
+
+    SoapySDR::RangeList getSampleRateRange(const int direction, const size_t channel) const
+    {
+        (void)direction;
+        (void)channel;
+
+        SoapySDR::RangeList results;
+
+        results.push_back(SoapySDR::Range(200, 100000000));
+
+        return results;
+    }
+
     SoapySDR::Stream *setupStream(
         const int direction,
         const std::string &format,
@@ -158,6 +189,13 @@ public:
 
         m_Input_fd = setup_mcast_in(m_data.c_str(), NULL, 0, 0);
         if (m_Input_fd == -1) {
+            // TODO
+        }
+
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 100000;
+        if (setsockopt(m_Input_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
             // TODO
         }
 
@@ -227,8 +265,8 @@ public:
             } else {
                 int size = recvfrom(m_Input_fd, m_buffer, sizeof(m_buffer), 0, &sender, &socksize);
                 if (size == -1) {
-                    // TODO
-                    continue;
+                    // TODO: Respect timeoutUs
+                    return outOffset / 2;
                 }
 
                 if (size < RTP_MIN_SIZE) {
@@ -268,21 +306,34 @@ public:
         const double frequency,
         const SoapySDR::Kwargs &args = SoapySDR::Kwargs())
     {
+        setFrequency(direction, channel, "RF", frequency, args);
+    }
+
+    void setFrequency(
+        const int direction,
+        const size_t channel,
+        const std::string &name,
+        const double frequency,
+        const SoapySDR::Kwargs &args = SoapySDR::Kwargs())
+    {
         (void)direction;
         (void)channel;
         (void)args;
 
-        uint8_t cmd_buffer[PKTSIZE];
-        uint8_t *bp = cmd_buffer;
-        *bp++ = 1; // Generate command packet
-        uint32_t sent_tag = arc4random();
-        encode_int(&bp, COMMAND_TAG, sent_tag);
-        encode_int(&bp, OUTPUT_SSRC, m_ssrc);
-        encode_double(&bp, RADIO_FREQUENCY, frequency); // Hz
-        encode_eol(&bp);
+        if (name == "RF")
+        {
+            uint8_t cmd_buffer[PKTSIZE];
+            uint8_t *bp = cmd_buffer;
+            *bp++ = 1; // Generate command packet
+            uint32_t sent_tag = arc4random();
+            encode_int(&bp, COMMAND_TAG, sent_tag);
+            encode_int(&bp, OUTPUT_SSRC, m_ssrc);
+            encode_double(&bp, RADIO_FREQUENCY, frequency); // Hz
+            encode_eol(&bp);
 
-        int cmd_len = bp - cmd_buffer;
-        sendCommand(cmd_buffer, cmd_len);
+            int cmd_len = bp - cmd_buffer;
+            sendCommand(cmd_buffer, cmd_len);
+        }
     }
 };
 
