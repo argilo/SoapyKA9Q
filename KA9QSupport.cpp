@@ -218,7 +218,12 @@ public:
 
         while (outOffset < numElems * 2) {
             if (m_bufferOffset < m_bufferLen) {
-                out[outOffset++] = ((float *)m_dp)[m_bufferOffset++];
+                int toCopy = std::min(m_bufferLen - m_bufferOffset, (int)(2 * numElems - outOffset));
+                std::memcpy(out, m_dp, toCopy * sizeof(float));
+                out += toCopy;
+                m_dp += (toCopy * sizeof(float));
+                outOffset += toCopy;
+                m_bufferOffset += toCopy;
             } else {
                 int size = recvfrom(m_Input_fd, m_buffer, sizeof(m_buffer), 0, &sender, &socksize);
                 if (size == -1) {
@@ -250,7 +255,7 @@ public:
                     continue;
                 }
 
-                m_bufferLen = size / 4;
+                m_bufferLen = size / sizeof(float);
                 m_bufferOffset = 0;
             }
         }
