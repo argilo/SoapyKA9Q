@@ -91,10 +91,15 @@ public:
         encode_int(&bp, OUTPUT_SAMPRATE, (int)rate);
         encode_float(&bp, LOW_EDGE, (int)(rate * -0.49));
         encode_float(&bp, HIGH_EDGE, (int)(rate * 0.49));
-        float Gain = 30;
+
+        float Gain = 0;
         encode_float(&bp, GAIN, Gain);
         encode_int(&bp, AGC_ENABLE, false);
         // encode_int(&bp, AGC_ENABLE, true);
+
+        enum encoding Encoding = F32LE;
+        encode_int(&bp, OUTPUT_ENCODING, Encoding);
+
         encode_eol(&bp);
 
         int cmd_len = bp - cmd_buffer;
@@ -213,9 +218,7 @@ public:
 
         while (outOffset < numElems * 2) {
             if (m_bufferOffset < m_bufferLen) {
-                int16_t samp = (m_dp[2*m_bufferOffset] << 8) | m_dp[2*m_bufferOffset + 1];
-                out[outOffset++] = samp / 32768.0;
-                m_bufferOffset++;
+                out[outOffset++] = ((float *)m_dp)[m_bufferOffset++];
             } else {
                 int size = recvfrom(m_Input_fd, m_buffer, sizeof(m_buffer), 0, &sender, &socksize);
                 if (size == -1) {
@@ -247,7 +250,7 @@ public:
                     continue;
                 }
 
-                m_bufferLen = size / 2;
+                m_bufferLen = size / 4;
                 m_bufferOffset = 0;
             }
         }
