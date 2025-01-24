@@ -208,6 +208,18 @@ public:
     {
         (void)stream;
 
+        uint8_t cmd_buffer[PKTSIZE];
+        uint8_t *bp = cmd_buffer;
+        *bp++ = 1; // Generate command packet
+        uint32_t sent_tag = arc4random();
+        encode_int(&bp, COMMAND_TAG, sent_tag);
+        encode_int(&bp, OUTPUT_SSRC, m_ssrc);
+        encode_double(&bp, RADIO_FREQUENCY, 0);
+        encode_eol(&bp);
+
+        int cmd_len = bp - cmd_buffer;
+        sendCommand(cmd_buffer, cmd_len);
+
         m_Input_fd = -1;
     }
 
