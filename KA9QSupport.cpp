@@ -1,7 +1,9 @@
 #include <SoapySDR/Device.hpp>
 #include <SoapySDR/Registry.hpp>
 #include <chrono>
+#include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <iostream>
 #include <thread>
 
@@ -344,13 +346,16 @@ SoapySDR::KwargsList findKA9Q(const SoapySDR::Kwargs &args)
 {
     (void)args;
 
+    std::srand(std::time(nullptr));
+    int ssrc = std::rand();
+
     SoapySDR::KwargsList results;
 
     SoapySDR::Kwargs devInfo;
-    devInfo["label"] = "KA9Q-Radio (hf.local, foobar.local, 1234)";
     devInfo["status"] = "hf.local";
     devInfo["data"] = "foobar.local";
-    devInfo["ssrc"] = "1234";
+    devInfo["ssrc"] = std::to_string(ssrc);
+    devInfo["label"] = "KA9Q-Radio (" + devInfo["status"] + ", ", devInfo["data"], ", " + devInfo["ssrc"] + ")";
 
     results.push_back(devInfo);
 
