@@ -196,7 +196,7 @@ public:
 
         struct timeval tv;
         tv.tv_sec = 0;
-        tv.tv_usec = 100000;
+        tv.tv_usec = 100000; // TODO: Set this appropriately
         if (setsockopt(m_Input_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
             // TODO
         }
@@ -256,7 +256,13 @@ public:
         struct sockaddr sender;
         socklen_t socksize = sizeof(sender);
 
+        auto startTime = std::chrono::steady_clock::now();
         while (outOffset < numElems * 2) {
+            // TODO: Choose timeout appropriately
+            if (std::chrono::steady_clock::now() > startTime + std::chrono::microseconds(100000)) {
+                return outOffset / 2;
+            }
+
             if (m_bufferOffset < m_bufferLen) {
                 int toCopy = std::min(m_bufferLen - m_bufferOffset, (int)(2 * numElems - outOffset));
                 std::memcpy(out, m_dp, toCopy * sizeof(float));
@@ -267,8 +273,8 @@ public:
             } else {
                 int size = recvfrom(m_Input_fd, m_buffer, sizeof(m_buffer), 0, &sender, &socksize);
                 if (size == -1) {
-                    // TODO: Respect timeoutUs
-                    return outOffset / 2;
+                    // TODO
+                    continue;
                 }
 
                 if (size < RTP_MIN_SIZE) {
