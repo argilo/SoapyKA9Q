@@ -31,6 +31,8 @@ private:
     uint8_t *m_dp = nullptr;
     int m_bufferLen = 0;
     int m_bufferOffset = 0;
+    int m_bytesPerSample = 4;
+    enum encoding m_encoding = F32LE;
     std::chrono::time_point<std::chrono::steady_clock> m_lastCommandTime{};
 
     void sendCommand(const void *buf, int len)
@@ -99,8 +101,7 @@ public:
         encode_int(&bp, AGC_ENABLE, false);
         // encode_int(&bp, AGC_ENABLE, true);
 
-        enum encoding Encoding = F32LE;
-        encode_int(&bp, OUTPUT_ENCODING, Encoding);
+        encode_int(&bp, OUTPUT_ENCODING, m_encoding);
 
         encode_eol(&bp);
 
@@ -262,26 +263,28 @@ public:
         (void)timeNs;
         (void)timeoutUs;
 
-        float *out = (float *) buffs[0];
-        size_t outOffset = 0;
+        char *out = (char *) buffs[0];
 
         struct sockaddr sender;
         socklen_t socksize = sizeof(sender);
 
+        int nRead = 0;
+
         auto startTime = std::chrono::steady_clock::now();
-        while (outOffset < numElems * 2) {
+        while (nRead < numElems) {
             // TODO: Choose timeout appropriately
             if (std::chrono::steady_clock::now() > startTime + std::chrono::microseconds(100000)) {
-                return outOffset / 2;
+                return nRead;
             }
 
-            if (m_bufferOffset < m_bufferLen) {
-                int toCopy = std::min(m_bufferLen - m_bufferOffset, (int)(2 * numElems - outOffset));
-                std::memcpy(out, m_dp, toCopy * sizeof(float));
-                out += toCopy;
-                m_dp += (toCopy * sizeof(float));
-                outOffset += toCopy;
-                m_bufferOffset += toCopy;
+            int toCopy = std::min((m_bufferLen - m_bufferOffset) / (2 * m_bytesPerSample), (int)(numElems - nRead));
+            if (toCopy > 0) {
+                int copyBytes = 2 * toCopy * m_bytesPerSample;
+                std::memcpy(out, m_dp, copyBytes);
+                out += copyBytes;
+                m_dp += copyBytes;
+                m_bufferOffset += copyBytes;
+                nRead += toCopy;
             } else {
                 int size = recvfrom(m_Input_fd, m_buffer, sizeof(m_buffer), 0, &sender, &socksize);
                 if (size == -1) {
@@ -295,29 +298,31 @@ public:
                 }
 
                 struct rtp_header rtp;
-                m_dp = (uint8_t *) ntoh_rtp(&rtp, m_buffer);
-
-                size -= m_dp - m_buffer;
-                if (rtp.pad) {
-                    // Remove padding
-                    size -= m_dp[size-1];
-                    rtp.pad = 0;
-                }
-                if(size <= 0) {
-                    // TODO
-                    continue;
-                }
+                uint8_t *dp = (uint8_t *)ntoh_rtp(&rtp, m_buffer);
 
                 if(rtp.ssrc != m_ssrc) {
                     // TODO
                     continue;
                 }
 
-                m_bufferLen = size / sizeof(float);
+                size -= dp - m_buffer;
+                if (rtp.pad) {
+                    // Remove padding
+                    size -= dp[size-1];
+                    rtp.pad = 0;
+                }
+
+                if(size <= 0) {
+                    // TODO
+                    continue;
+                }
+
+                m_dp = dp;
+                m_bufferLen = size;
                 m_bufferOffset = 0;
             }
         }
-        return numElems;
+        return nRead;
     }
 
     void setFrequency(
