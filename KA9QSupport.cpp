@@ -394,7 +394,7 @@ SoapySDR::KwargsList findKA9Q(const SoapySDR::Kwargs &args)
 
     SoapySDR::Kwargs devInfo;
     devInfo["status"] = "hf.local";
-    devInfo["data"] = "foobar.local";
+    devInfo["data"] = "hf-data.local";
     devInfo["ssrc"] = std::to_string(ssrc);
     devInfo["label"] = "KA9Q-Radio (" + devInfo["status"] + ", " + devInfo["data"] + ", " + devInfo["ssrc"] + ")";
 
