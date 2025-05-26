@@ -150,6 +150,15 @@ public:
         return results;
     }
 
+    std::vector<std::string> getStreamFormats(const int direction, const size_t channel) const
+    {
+	    std::vector<std::string> formats;
+	    formats.push_back("CS16");
+	    formats.push_back("CF16");
+	    formats.push_back("CF32");
+	    return formats;
+    }
+
     SoapySDR::Stream *setupStream(
         const int direction,
         const std::string &format,
@@ -157,9 +166,18 @@ public:
         const SoapySDR::Kwargs &args = SoapySDR::Kwargs())
     {
         (void)direction;
-        (void)format;
         (void)channels;
         (void)args;
+
+        if (format == "CS16") {
+            m_bytesPerSample = 2;
+            m_encoding = S16LE;
+        } else if (format == "CF16") {
+            m_bytesPerSample = 2;
+            m_encoding = F16LE;
+        } else if (format != "CF32") {
+            return NULL;
+        }
 
         struct sockaddr_storage Control_address;
         char iface[1024];
