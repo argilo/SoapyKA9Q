@@ -2,7 +2,7 @@
 # Project setup -- only needed if device support is a stand-alone build
 # We recommend that the support module be built in-tree with the driver.
 ########################################################################
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.10)
 project(SoapyKA9Q C CXX)
 enable_testing()
 
@@ -41,4 +41,4 @@ SOAPY_SDR_MODULE_UTIL(
     LIBRARIES ${MY_DEVICE_LIBRARIES}
 )
 
-target_link_libraries(KA9Q bsd)
+target_link_libraries(KA9Q PRIVATE bsd)
