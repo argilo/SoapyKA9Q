@@ -36,6 +36,7 @@ SOAPY_SDR_MODULE_UTIL(
     SOURCES
         misc.c
         multicast.c
+        rtp.c
         status.c
         KA9QSupport.cpp
     LIBRARIES ${MY_DEVICE_LIBRARIES}
